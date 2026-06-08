@@ -1,0 +1,16 @@
+{
+  "name": "ecopulse",
+  "version": "1.0.0",
+  "description": "Empathetic, privacy-first carbon footprint tracker & coach.",
+  "type": "module",
+  "scripts": {
+    "test": "node __tests__/run-tests.js"
+  },
+  "keywords": [
+    "sustainability",
+    "carbon-footprint",
+    "green-tech"
+  ],
+  "author": "EcoPulse",
+  "license": "MIT"
+}
