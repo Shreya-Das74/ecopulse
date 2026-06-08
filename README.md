@@ -1,108 +1,86 @@
 # EcoPulse 🍀
 
-**EcoPulse** is an empathetic, privacy-first, and highly efficient carbon footprint tracker and personalized sustainability coach. Built as a single-page application (SPA) with zero external runtime dependencies, the entire repository is extremely lightweight (under 100 KB) and runs entirely in the browser using HTML5, CSS3, and ES Modules.
+**EcoPulse** is an empathetic, privacy-first, and highly efficient carbon footprint tracker and sustainability coach. Engineered using **Domain-Driven Design (DDD)** and strict modular separation of concerns, the codebase features zero runtime dependencies and stays well under 100 KB.
 
-All user data and calculations are processed and saved locally in `localStorage`, guaranteeing complete data privacy.
+All data calculations are executed entirely on the client, ensuring complete user privacy.
 
 ---
 
-## 🛠️ System Architecture & Codebase Layout
+## 🏗️ System Architecture & Codebase Layout
 
-The codebase follows a modular design separating state, math logic, recommendation rules, and UI components:
+The project separates core business mathematical logic, data persistence, sanitization validation, and rendering layers:
 
 ```
 ecopulse/
-├── index.html               # Semantic HTML5 shell with ARIA accessibility hooks
-├── package.json             # Module definition and local development scripts
-├── README.md                # System documentation
+├── index.html               # Accessible HTML5 template with ARIA live region
+├── package.json             # ES Module script and test configurations
+├── README.md                # Technical system documentation
 ├── css/
-│   └── style.css            # Custom HSL-based design system, glassmorphism, & variables
+│   └── style.css            # Dark-mode-first glassmorphic visual styles & design variables
 ├── js/
-│   ├── app.js               # Router, event hub, and main application bootstrap
-│   ├── state.js             # Reactive, LocalStorage-backed state with XSS sanitization
-│   ├── calculator.js        # Core carbon emission math (transport, energy, diet)
-│   ├── engine.js            # Rules-based sustainability recommendation engine
-│   └── components/
-│       ├── onboarding.js    # Multi-step accessible questionnaire wizard
-│       ├── dashboard.js     # Carbon breakdown, gauge visualization, and averages comparison
-│       ├── actions.js       # Micro-Actions checklist with category filters
-│       └── coach.js         # Empathetic coach panel delivering encouraging messages
+│   ├── app.js               # Router, event hub, and main application orchestrator
+│   ├── Domain/
+│   │   ├── Calculator.js    # Immutable carbon math functions (isolated domain layer)
+│   │   └── Engine.js        # Rules-based recommendation engine matching profile context to actions
+│   ├── Data/
+│   │   ├── State.js         # Reactive LocalStorage-backed state with immutable state wrappers
+│   │   └── Security.js      # OWASP XSS defense, regex name matching, and numeric range bounds checking
+│   └── UI/
+│       ├── Onboarding.js    # Multi-step questionnaire wizard
+│       ├── Dashboard.js     # Carbon breakdown, circular SVG progress gauge, and coach details
+│       ├── Actions.js       # Recommendations checklist with tag categories
+│       └── Coach.js         # Coach dialog bubble and active savings tracker
 └── __tests__/
-    ├── calculator.test.js   # Unit tests for emission math
-    ├── engine.test.js       # Unit tests for recommendation rules
+    ├── security.test.js     # Sanitization, XSS checks, and error boundaries
+    ├── calculator.test.js   # Calculations edge-case and boundary verification
+    ├── engine.test.js       # Context-to-action integration tests
     └── run-tests.js         # Lightweight Node-native test runner
 ```
 
 ---
 
-## 🧠 Core Calculations & Recommendation Logic
+## 🔒 Security Safeguards & Privacy Mandates
 
-### 1. Carbon Calculations (`calculator.js`)
-EcoPulse computes carbon footprints (in **Metric Tons of CO2e per year**) across four main pillars:
-*   **Transportation:** 
-    *   *Gasoline Cars:* Assumes average fuel efficiency of 22 mpg (~0.40 kg CO2e / mile) multiplied by annual miles.
-    *   *Electric Vehicles (EVs):* Multiplies electricity consumed (assumes 3.3 miles per kWh) by the regional electrical grid intensity.
-    *   *Public Transit:* Emits ~0.14 kg CO2e / mile.
-    *   *Active Transit:* Emits 0.0 kg CO2e.
-*   **Home Energy (Electricity):** Computed using monthly kWh consumption multiplied by the regional grid carbon intensity:
-    *   *Coal-Heavy Grids:* 0.82 kg CO2e / kWh (e.g., WY, IN, WV).
-    *   *National Average Grids:* 0.37 kg CO2e / kWh.
-    *   *Hydro-Clean Grids:* 0.04 kg CO2e / kWh (e.g., WA, OR, VT).
-*   **Home Energy (Natural Gas):** Computed using monthly therms multiplied by natural gas emission factor (5.3 kg CO2e / therm).
-*   **Diet:** Tiered baseline profiles:
-    *   *Meat Lover:* 3.3 MT CO2e / year.
-    *   *Balanced:* 2.5 MT CO2e / year.
-    *   *Vegetarian:* 1.7 MT CO2e / year.
-    *   *Vegan:* 1.5 MT CO2e / year.
-*   **Waste:** A standard baseline of 0.5 MT CO2e / year per individual.
+EcoPulse prioritizes browser-side security and data integrity:
 
-### 2. Personalized Micro-Actions (`engine.js`)
-Instead of generic advice, EcoPulse uses conditional logic on user profile inputs to output custom **Micro-Actions** (e.g. weekly CO2e offsets):
-*   *If driving gas vehicles:* Prioritizes actions for **Transit Swapping** (swapping 2 weekly trips) and **Eco-Driving** (e.g. checking tire pressure to improve fuel economy by 10%).
-*   *If located in a Coal-Heavy grid:* Triggers actions for **Peak Shaving** (shifting heavy laundry or dishwashing load past 10 PM) and **Vampire Power Mitigation** (unplugging standby appliances).
-*   *If meat-heavy diet:* Prioritizes introducing **Meatless Mondays** and swapping dairy milks for oat/soy milk.
-*   *If vegan/vegetarian diet:* Highlights **Composting** and **Food Waste Prevention** as the primary agricultural leverage points.
+1. **XSS & Injection Protection (`Data/Security.js`):**
+   * **HTML Escaping:** All user-provided strings are escaped using entity replacement mappings (`&`, `<`, `>`, `"`, `'`) before state saving or page insertion.
+   * **Regex Name Validation:** Enforces the pattern `/^[a-zA-Z\s\-']{1,50}$/`. Anything outside this is rejected, blocking script injections (e.g. `<script>`).
+2. **Numeric Boundary Checking:**
+   * User values (miles, electricity, gas) are parsed, checked against hard limits (e.g., maximum monthly kWh of 10000), and fallback to `0` if invalid or negative, preventing mathematical overflows or negative emissions.
+3. **Data Encapsulation & Immutability (`Data/State.js`):**
+   * The application state is encapsulated in a class container. 
+   * When components query state, it returns a **deep cloned copy** (`JSON.parse(JSON.stringify(this._state))`), ensuring components cannot directly mutate state variables. All changes must go through explicit state methods.
+4. **Zero API Risks:**
+   * The app is fully client-side. There are no API keys, credentials, or third-party tracking scripts.
 
 ---
 
-## ♿ Accessibility & Inclusive Design (WCAG 2.1 AA)
+## 🧪 Advanced Automated Test Suite
 
-Accessibility is baked into the foundation:
-1.  **Semantic HTML5:** Renders logical structure using `<header>`, `<main>`, `<section>`, and `<nav>`.
-2.  **Screen Reader Announcements:** A hidden `aria-live` region (`#screen-reader-announcer`) announces view updates, progress changes, and action completions dynamically.
-3.  **Keyboard Navigable:** All buttons, custom options, and checkboxes are keyboard-focusable, supporting clear visual `:focus-visible` outlines in high-contrast cyan (`#22d3ee`).
-4.  **High Contrast ratios:** Main colors have a contrast ratio of > 4.5:1 against the dark background, exceeding WCAG 2.1 AA requirements.
-5.  **Skip Navigation:** A native "Skip to main content" link is available for keyboard users.
+EcoPulse includes a zero-dependency, lightweight, native test suite testing math, security, and context-driven integration rules.
 
----
+### Test Coverage Map
 
-## 🔒 Security & Performance
+| Test Suite | File Path | Focus Area | Verified Scenarios |
+| :--- | :--- | :--- | :--- |
+| **Security & Validation** | `__tests__/security.test.js` | Injection Defense & Graceful recovery | Script tags sanitization, name format regex, numeric range clamping, corrupted payload fallbacks. |
+| **Carbon Calculator** | `__tests__/calculator.test.js` | Emission math algorithms | Transit mode factors, clean/dirty electrical grids, dietary footprints, negative values, non-numeric fallbacks. |
+| **Decision Engine** | `__tests__/engine.test.js` | Context-to-action matching | Heavy gas driver triggers carpooling actions, coal grid triggers off-peak appliance schedules, vegan diet triggers food waste rules. |
 
-*   **XSS Mitigation:** All text input fields (e.g., username) are sanitized using an HTML entity escape mapping before storing or rendering.
-*   **No External Assets:** All icons are inline SVGs. Custom fonts are loaded from Google Fonts. There are no tracking scripts, analytics, or external frameworks.
-*   **No NPM Bloat:** Runs entirely on native browser features (Web APIs, ES Modules, localStorage, CSS custom properties) making runtime performance instantaneous.
-
----
-
-## ⚡ Setup & Testing
-
-### Prerequisites
-*   Node.js (v18 or higher recommended) installed locally.
-
-### 1. Install & Start Development Server
-Since the application uses ES Modules, it cannot be run directly via `file://` URLs in modern browsers due to CORS security. Start the local server:
-
-```bash
-# Start the HTTP server (will listen on http://localhost:8080)
-npx http-server -p 8080
-```
-
-Open `http://localhost:8080` in your web browser.
-
-### 2. Run Automated Tests
-EcoPulse has a custom unit test suite verifying the mathematical calculations and recommendation routing rules. To run:
-
+### How to Run Tests
+To run the automated suite:
 ```bash
 npm test
 ```
-This runs `node __tests__/run-tests.js` out-of-the-box with zero third-party testing dependency installations.
+
+---
+
+## ⚡ Setup & Development
+
+### 1. Run Development Server
+To run locally, start a lightweight web server to support ES Module imports:
+```bash
+npx http-server -p 8080
+```
+Open `http://localhost:8080` in your web browser.

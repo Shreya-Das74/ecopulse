@@ -1,9 +1,10 @@
 /**
- * @fileoverview Unit tests for the Recommendation Engine rules.
+ * @fileoverview Integration tests for the Recommendation Engine rules.
+ * Verifies that specific user context arrays successfully output the correct arrays of personalized Micro-Actions.
  */
 
 import assert from 'assert';
-import { generateRecommendations } from '../js/engine.js';
+import { generateRecommendations } from '../js/Domain/Engine.js';
 
 export function runEngineTests() {
   console.log('🧪 Running Recommendation Engine Tests...');
@@ -79,6 +80,35 @@ export function runEngineTests() {
 
   // Waste actions should always exist
   assert.ok(actionsB.some(a => a.id === 'waste-composting'), 'Composting recommendation should exist for all users.');
+
+
+  // ==========================================
+  // EDGE CASE & CRASH RESILIENCE TESTING
+  // ==========================================
+
+  // A. Null/Undefined Profile
+  const nullActions = generateRecommendations(null);
+  assert.ok(Array.isArray(nullActions), 'Null profiles should return an empty array');
+  assert.strictEqual(nullActions.length, 0, 'Null profiles should yield 0 recommendations');
+
+  // B. Empty Profile
+  const emptyActions = generateRecommendations({});
+  assert.ok(Array.isArray(emptyActions), 'Empty profiles should return an empty array');
+  assert.strictEqual(emptyActions.length, 0, 'Empty profiles should yield 0 recommendations');
+
+  // C. Extreme inputs mapping
+  const extremeProfile = {
+    transitMode: 'gas-car',
+    transitMiles: 99999, // very extreme mileage
+    dietType: 'meat-heavy',
+    electricityKwh: 999999,
+    gridRegion: 'coal-heavy'
+  };
+  const extremeActions = generateRecommendations(extremeProfile);
+  assert.ok(extremeActions.length > 0, 'Extreme profiles should still generate recommendations');
+  const extremeTransitSwap = extremeActions.find(a => a.id === 'transit-swap');
+  assert.ok(extremeTransitSwap, 'Should generate transit swap recommendation');
+  assert.ok(isFinite(extremeTransitSwap.savings), 'Savings should remain a finite number');
 
   console.log('✅ Recommendation Engine Tests Passed Successfully!');
 }

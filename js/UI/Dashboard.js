@@ -1,14 +1,15 @@
 /**
  * @fileoverview Dashboard component for EcoPulse.
  * Displays baseline emissions, category details, and comparisons.
+ * Integrates directly with Domain Calculator logic.
  */
 
-import { calculateFootprint } from '../calculator.js';
+import { calculateFootprint } from '../Domain/Calculator.js';
 
 export class DashboardComponent {
   /**
    * @param {HTMLElement} container - Target mount element.
-   * @param {Object} state - Application state object.
+   * @param {Object} state - Read-only application state.
    */
   constructor(container, state) {
     this.container = container;
@@ -22,8 +23,7 @@ export class DashboardComponent {
     const { profile } = this.state;
     const footprint = calculateFootprint(profile);
     
-    // Calculate percentages for category breakdown bars
-    const total = footprint.total || 0.1; // avoid divide by zero
+    const total = footprint.total || 0.1; 
     const pctTransit = Math.min(100, Math.round((footprint.breakdown.transit / total) * 100));
     const pctEnergy = Math.min(100, Math.round((footprint.breakdown.energy / total) * 100));
     const pctDiet = Math.min(100, Math.round((footprint.breakdown.diet / total) * 100));
@@ -34,7 +34,6 @@ export class DashboardComponent {
     const fraction = Math.min(1, total / maxScale);
     const offset = 565.48 * (1 - fraction);
 
-    // Create relative context description for comparison
     let comparisonText = '';
     const usAverage = 16.0;
     const globalTarget = 2.0;
@@ -154,7 +153,7 @@ export class DashboardComponent {
 
         <!-- Right Side Panel: Dynamic AI Coach -->
         <div id="dashboard-coach-panel">
-          <!-- Will be rendered separately by CoachComponent -->
+          <!-- CoachComponent mounts here -->
         </div>
       </div>
     `;

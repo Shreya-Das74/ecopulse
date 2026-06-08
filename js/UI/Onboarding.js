@@ -1,10 +1,11 @@
 /**
  * @fileoverview Onboarding wizard component for EcoPulse.
  * Collects name, location/grid region, transit habits, diet, and energy usage.
+ * Integrates directly with the secure Data and Domain layers.
  */
 
-import { stateManager } from '../state.js';
-import { generateRecommendations } from '../engine.js';
+import { stateManager } from '../Data/State.js';
+import { generateRecommendations } from '../Domain/Engine.js';
 
 export class OnboardingComponent {
   /**
@@ -17,7 +18,7 @@ export class OnboardingComponent {
     this.currentStep = 1;
     this.totalSteps = 4;
     
-    // Local questionnaire state
+    // Questionnaire state
     this.formData = {
       name: '',
       gridRegion: 'national-avg',
@@ -30,7 +31,7 @@ export class OnboardingComponent {
   }
 
   /**
-   * Initializes and renders the onboarding wizard.
+   * Initializes and renders the onboarding wizard step.
    */
   render() {
     this.container.innerHTML = `
@@ -55,8 +56,8 @@ export class OnboardingComponent {
             <h2 id="step-1-title" class="mb-4" style="font-size: 1.5rem;">Welcome to EcoPulse! Let's get started.</h2>
             <div class="form-group">
               <label for="input-name">What should we call you?</label>
-              <input type="text" id="input-name" class="form-control" placeholder="Enter your name or nickname" required value="${this.formData.name}">
-              <div class="form-helper" id="name-error" style="color: var(--error-color); display: none;" role="alert">Name is required.</div>
+              <input type="text" id="input-name" class="form-control" placeholder="Enter your name (letters only)" required value="${this.formData.name}">
+              <div class="form-helper" id="name-error" style="color: var(--error-color); display: none;" role="alert">Please enter a valid name (1-50 alphabetic characters, hyphens, or spaces).</div>
             </div>
             
             <div class="form-group">
@@ -173,37 +174,32 @@ export class OnboardingComponent {
   }
 
   /**
-   * Sets up click, change, and keyboard event handlers.
+   * Binds click, input change, and button selection event listeners.
    */
   bindEvents() {
     const form = this.container.querySelector('#onboarding-form');
     if (!form) return;
 
-    // Next / Submit Button
     const btnNext = this.container.querySelector('#btn-next');
     btnNext.addEventListener('click', (e) => {
       e.preventDefault();
       this.handleNext();
     });
 
-    // Prev Button
     const btnPrev = this.container.querySelector('#btn-prev');
     btnPrev.addEventListener('click', (e) => {
       e.preventDefault();
       this.handlePrev();
     });
 
-    // Handle Custom Option Button clicks
     const optionBtns = this.container.querySelectorAll('.option-btn');
     optionBtns.forEach(btn => {
       btn.addEventListener('click', () => {
         const field = btn.getAttribute('data-field');
         const value = btn.getAttribute('data-value');
         
-        // Update local state
         this.formData[field] = value;
         
-        // Update button visual state
         const siblings = this.container.querySelectorAll(`.option-btn[data-field="${field}"]`);
         siblings.forEach(sib => {
           sib.classList.remove('selected');
@@ -214,7 +210,6 @@ export class OnboardingComponent {
       });
     });
 
-    // Handle standard inputs change to sync to state
     const inputName = this.container.querySelector('#input-name');
     if (inputName) {
       inputName.addEventListener('input', (e) => {
@@ -248,15 +243,18 @@ export class OnboardingComponent {
   }
 
   /**
-   * Validates current step data.
-   * @returns {boolean} True if input is valid.
+   * Validates state data of the active step against regex and boundaries.
+   * 
+   * @returns {boolean} True if inputs are clean.
    */
   validateStep() {
     let isValid = true;
 
     if (this.currentStep === 1) {
       const errorEl = this.container.querySelector('#name-error');
-      if (!this.formData.name || this.formData.name.trim() === '') {
+      // Validate name structure using alphabetic character regex bounds (1-50 length)
+      const nameRegex = /^[a-zA-Z\s\-']{1,50}$/;
+      if (!this.formData.name || !nameRegex.test(this.formData.name.trim())) {
         errorEl.style.display = 'block';
         isValid = false;
       } else {
@@ -300,7 +298,7 @@ export class OnboardingComponent {
   }
 
   /**
-   * Processes moving to the next wizard step.
+   * Progresses step index.
    */
   handleNext() {
     if (!this.validateStep()) return;
@@ -314,7 +312,7 @@ export class OnboardingComponent {
   }
 
   /**
-   * Processes moving to the previous wizard step.
+   * Backtracks step index.
    */
   handlePrev() {
     if (this.currentStep > 1) {
@@ -324,31 +322,27 @@ export class OnboardingComponent {
   }
 
   /**
-   * Saves profile, triggers AI engine logic, and redirects.
+   * Commits profile, computes dynamic insights, and fires callback.
    */
   completeOnboarding() {
-    // 1. Save profile to centralized State Manager
     stateManager.updateProfile(this.formData);
 
-    // 2. Generate personalized recommendations based on the newly captured profile
+    // Generate actions list using secure, immutable state data copy
     const recommendations = generateRecommendations(stateManager.state.profile);
-
-    // 3. Store actions in State Manager
     stateManager.setActions(recommendations);
 
-    // 4. Trigger callback to update main container routes
     if (this.onComplete) {
       this.onComplete();
     }
   }
 
   /**
-   * Announces current step to assistive tech (screen readers).
+   * Emits speech synthesizer helper tag.
    */
   announceStep() {
     const announcer = document.getElementById('screen-reader-announcer');
     if (announcer) {
-      announcer.textContent = `EcoPulse wizard step ${this.currentStep} of ${this.totalSteps} loaded.`;
+      announcer.textContent = `EcoPulse onboarding step ${this.currentStep} of ${this.totalSteps} loaded.`;
     }
   }
 }

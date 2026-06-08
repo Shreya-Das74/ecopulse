@@ -1,13 +1,14 @@
 /**
  * @fileoverview Main orchestrator and entry point for EcoPulse.
  * Handles client-side view routing, header updates, and reactive component rendering.
+ * Bootstraps the UI layer on top of the secure Data layer.
  */
 
-import { stateManager } from './state.js';
-import { OnboardingComponent } from './components/onboarding.js';
-import { DashboardComponent } from './components/dashboard.js';
-import { ActionsComponent } from './components/actions.js';
-import { CoachComponent } from './components/coach.js';
+import { stateManager } from './Data/State.js';
+import { OnboardingComponent } from './UI/Onboarding.js';
+import { DashboardComponent } from './UI/Dashboard.js';
+import { ActionsComponent } from './UI/Actions.js';
+import { CoachComponent } from './UI/Coach.js';
 
 class App {
   constructor() {
@@ -20,28 +21,27 @@ class App {
     this.navActions = document.getElementById('nav-actions');
     this.navReset = document.getElementById('nav-reset');
 
-    // Routing parameter
-    this.activeView = 'dashboard'; // 'dashboard' | 'actions'
+    this.activeView = 'dashboard'; 
   }
 
   /**
-   * Initializes listeners and starts subscription.
+   * Initializes listeners and starts state subscription.
    */
   init() {
-    // Register event listeners for navigation header buttons
     this.navDashboard.addEventListener('click', () => this.switchView('dashboard'));
     this.navActions.addEventListener('click', () => this.switchView('actions'));
     this.navReset.addEventListener('click', () => this.handleReset());
 
-    // Subscribe to state modifications for reactive rendering
+    // Subscribe to state changes for automatic, reactive updates
     stateManager.subscribe((state) => this.render(state));
 
-    // Execute first rendering cycle with initial state
+    // Initial render
     this.render(stateManager.state);
   }
 
   /**
    * Switches the active view route and triggers a re-render.
+   * 
    * @param {string} view - 'dashboard' or 'actions'.
    */
   switchView(view) {
@@ -51,7 +51,7 @@ class App {
   }
 
   /**
-   * Updates CSS classes and accessibility current-attributes on header navigation.
+   * Updates CSS active classes and accessibility focus tags on header links.
    */
   updateNavigationUI() {
     if (this.activeView === 'dashboard') {
@@ -68,7 +68,7 @@ class App {
   }
 
   /**
-   * Prompts user before clearing state data and resetting to onboarding.
+   * Prompts user before clearing state data and returning to onboarding.
    */
   handleReset() {
     const confirmed = confirm('Are you sure you want to reset your EcoPulse profile? This will permanently delete your tracked stats, streak, and checklist.');
@@ -85,44 +85,37 @@ class App {
   }
 
   /**
-   * Core rendering orchestrator. Builds views dynamically based on onboarding status.
-   * @param {Object} state - Current application state.
+   * Core rendering engine. Dynamically loads pages based on onboarding completeness.
+   * 
+   * @param {Object} state - Current read-only application state.
    */
   render(state) {
     if (!state.onboarded) {
-      // Hide dashboard navigation elements
       this.mainNav.style.display = 'none';
       this.streakIndicator.style.display = 'none';
 
-      // Load Onboarding wizard
       const onboarding = new OnboardingComponent(this.appRoot, () => {
-        // Callback executed upon completion
         this.activeView = 'dashboard';
         this.updateNavigationUI();
         this.render(stateManager.state);
       });
       onboarding.render();
     } else {
-      // Show navigation elements
       this.mainNav.style.display = 'block';
       
-      // Update streak indicator
       this.streakIndicator.style.display = 'inline-flex';
       this.streakCount.textContent = `${state.streak} Action${state.streak === 1 ? '' : 's'}`;
 
-      // Render the current view page
       if (this.activeView === 'dashboard') {
         const dashboard = new DashboardComponent(this.appRoot, state);
         dashboard.render();
 
-        // Render the Coach component inside the dashboard grid panel
         const coachContainer = document.getElementById('dashboard-coach-panel');
         if (coachContainer) {
           const coach = new CoachComponent(coachContainer, state);
           coach.render();
         }
       } else {
-        // Actions list view
         const actionsList = new ActionsComponent(this.appRoot, state);
         actionsList.render();
       }
@@ -130,7 +123,6 @@ class App {
   }
 }
 
-// Bootstrap on DOM Load
 document.addEventListener('DOMContentLoaded', () => {
   const app = new App();
   app.init();

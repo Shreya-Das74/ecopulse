@@ -1,19 +1,19 @@
 /**
- * @fileoverview Micro-Actions component for EcoPulse.
- * Lists recommendations and allows users to check them off, tracking progress.
+ * @fileoverview Micro-Actions checklist component for EcoPulse.
+ * Connects directly to the secure stateManager module to handle toggling.
  */
 
-import { stateManager } from '../state.js';
+import { stateManager } from '../Data/State.js';
 
 export class ActionsComponent {
   /**
    * @param {HTMLElement} container - Target mount element.
-   * @param {Object} state - Application state object.
+   * @param {Object} state - Read-only application state.
    */
   constructor(container, state) {
     this.container = container;
     this.state = state;
-    this.currentFilter = 'all'; // 'all', 'transport', 'energy', 'diet', 'waste'
+    this.currentFilter = 'all'; 
   }
 
   /**
@@ -22,12 +22,10 @@ export class ActionsComponent {
   render() {
     const { actions } = this.state;
     
-    // Group categories for count filters
     const countTotal = actions.length;
     const countActive = actions.filter(a => !a.completed).length;
     const countCompleted = actions.filter(a => a.completed).length;
 
-    // Filter list
     const filteredActions = actions.filter(action => {
       if (this.currentFilter === 'all') return true;
       return action.category === this.currentFilter;
@@ -85,8 +83,9 @@ export class ActionsComponent {
   }
 
   /**
-   * Helper that returns HTML markup for a single action card.
-   * @param {Object} action - Recommendation details.
+   * Helper to return action card markup.
+   * 
+   * @param {Object} action - Action details.
    * @returns {string} Card HTML.
    */
   renderActionCard(action) {
@@ -116,10 +115,9 @@ export class ActionsComponent {
   }
 
   /**
-   * Binds checkbox clicking and filter switches.
+   * Binds click and state modifications.
    */
   bindEvents() {
-    // Checkbox custom elements clicking (which acts as standard checkbox clicks)
     const checkboxes = this.container.querySelectorAll('.action-checkbox');
     checkboxes.forEach(cb => {
       cb.addEventListener('change', (e) => {
@@ -128,7 +126,6 @@ export class ActionsComponent {
       });
     });
 
-    // Custom checkbox wrapper helper clicking
     const customBoxes = this.container.querySelectorAll('.action-checkbox-custom');
     customBoxes.forEach(box => {
       box.addEventListener('click', () => {
@@ -136,13 +133,11 @@ export class ActionsComponent {
         const hiddenCheckbox = this.container.querySelector(`#checkbox-${id}`);
         if (hiddenCheckbox) {
           hiddenCheckbox.checked = !hiddenCheckbox.checked;
-          // Trigger the change handler
           hiddenCheckbox.dispatchEvent(new Event('change'));
         }
       });
     });
 
-    // Filters navigation
     const filterBtns = this.container.querySelectorAll('[data-filter]');
     filterBtns.forEach(btn => {
       btn.addEventListener('click', () => {
@@ -153,7 +148,8 @@ export class ActionsComponent {
   }
 
   /**
-   * Toggles action inside the global state manager and triggers accessibility announcement.
+   * Toggles completion status.
+   * 
    * @param {string} id - Action ID.
    */
   toggleActionCompletion(id) {
@@ -167,7 +163,8 @@ export class ActionsComponent {
   }
 
   /**
-   * Emits speech synthesizer alert for visually impaired users.
+   * Screen reader utility.
+   * 
    * @param {string} msg
    */
   announce(msg) {

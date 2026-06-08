@@ -1,12 +1,13 @@
 /**
- * @fileoverview Sustainability Coach component for EcoPulse.
+ * @fileoverview Sustainability Coach panel component for EcoPulse.
  * Provides encouragement, calculates current weekly savings, and motivates action.
+ * Pure presentation layer receiving state models.
  */
 
 export class CoachComponent {
   /**
    * @param {HTMLElement} container - Target mount element.
-   * @param {Object} state - Application state object.
+   * @param {Object} state - Read-only application state.
    */
   constructor(container, state) {
     this.container = container;
@@ -19,13 +20,11 @@ export class CoachComponent {
   render() {
     const { profile, actions, streak } = this.state;
     
-    // Calculate completed statistics
     const completedActions = actions.filter(a => a.completed);
     const completedCount = completedActions.length;
     const weeklySavings = completedActions.reduce((sum, a) => sum + a.savings, 0);
     const roundedSavings = Math.round(weeklySavings * 10) / 10;
 
-    // Dynamically adjust coach recommendation speech
     let coachMessage = '';
     
     if (completedCount === 0) {
@@ -36,7 +35,6 @@ export class CoachComponent {
       coachMessage = `Fantastic effort, <strong>${profile.name}</strong>! By completing <strong>${completedCount} action${completedCount > 1 ? 's' : ''}</strong>, you are preventing <strong>${roundedSavings} kg of CO2e</strong> from entering the atmosphere every single week! Which action is next?`;
     }
 
-    // Edge cases / specialized recommendations
     if (completedCount === 0 && profile.gridRegion === 'coal-heavy') {
       coachMessage = `Hi <strong>${profile.name}</strong>! Since you live in a region with a coal-heavy grid, scheduling energy-intensive chores (like laundry) for off-peak hours is your absolute best starting point. Let's do it!`;
     } else if (completedCount === 0 && profile.transitMode === 'gas-car' && profile.transitMiles > 150) {

@@ -1,8 +1,9 @@
 /**
  * @fileoverview Custom test runner for EcoPulse.
- * Runs all unit tests and outputs status results.
+ * Runs all unit, integration, and security tests, outputting status results.
  */
 
+import { runSecurityTests } from './security.test.js';
 import { runCalculatorTests } from './calculator.test.js';
 import { runEngineTests } from './engine.test.js';
 
@@ -12,15 +13,19 @@ async function runAllTests() {
   console.log('==================================================');
 
   try {
-    // Run calculator logic assertions
+    // 1. Run security sanitization and validation assertions
+    runSecurityTests();
+    console.log('');
+
+    // 2. Run calculator logic assertions
     runCalculatorTests();
     console.log('');
     
-    // Run recommendation engine assertions
+    // 3. Run recommendation engine assertions
     runEngineTests();
     
     console.log('==================================================');
-    console.log('🎉 SUCCESS: All EcoPulse unit tests passed!');
+    console.log('🎉 SUCCESS: All EcoPulse unit, integration, and security tests passed!');
     console.log('==================================================');
     process.exit(0);
   } catch (error) {

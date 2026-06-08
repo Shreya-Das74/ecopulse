@@ -1,9 +1,10 @@
 /**
- * @fileoverview Sustainability recommendation engine for EcoPulse.
- * Dynamically generates personalized Micro-Actions based on user profiles.
+ * @fileoverview Domain Sustainability Recommendation Engine.
+ * Houses conditional decision logic to yield customized Micro-Actions with offsets.
+ * Strictly decoupled from DOM operations and data layers.
  */
 
-import { EMISSION_FACTORS } from './calculator.js';
+import { EMISSION_FACTORS } from './Calculator.js';
 
 /**
  * @typedef {Object} UserProfile
@@ -21,21 +22,27 @@ import { EMISSION_FACTORS } from './calculator.js';
  * @property {string} id
  * @property {string} title
  * @property {string} category
- * @property {number} savings - kg CO2e saved per week
+ * @property {number} savings - Projected carbon savings (kg CO2e per week)
  * @property {string} rationale
  * @property {boolean} completed
  */
 
 /**
  * Evaluates the user's profile and returns a personalized list of Micro-Actions.
- * @param {UserProfile} profile - The user profile context.
- * @returns {MicroAction[]} Array of personalized recommendations.
+ * Adheres to strict SOLID conventions and handles default fallbacks for undefined values.
+ * 
+ * @param {UserProfile} profile - Cleaned user profile context.
+ * @returns {MicroAction[]} List of recommendations.
  */
 export function generateRecommendations(profile) {
+  if (!profile || typeof profile !== 'object' || Object.keys(profile).length === 0) {
+    return [];
+  }
+
   const recommendations = [];
   const gridFactor = EMISSION_FACTORS.grid[profile.gridRegion] || EMISSION_FACTORS.grid['national-avg'];
 
-  // --- TRANSPORTATION RECOMMENDATIONS ---
+  // --- TRANSPORTATION RULES ---
   if (profile.transitMode === 'gas-car' && profile.transitMiles > 0) {
     // 1. Carpool/Transit Swap
     const transitSavings = Math.round(profile.transitMiles * 0.20 * (0.40 - 0.14) * 10) / 10;
@@ -59,7 +66,7 @@ export function generateRecommendations(profile) {
       completed: false
     });
 
-    // 3. EV Transition (Longer term action with high impact indicator)
+    // 3. EV Transition
     const evFactor = EMISSION_FACTORS.transit.ev[profile.gridRegion] || EMISSION_FACTORS.transit.ev['national-avg'];
     const evSavings = Math.round(profile.transitMiles * (0.40 - evFactor) * 10) / 10;
     recommendations.push({
@@ -91,9 +98,8 @@ export function generateRecommendations(profile) {
     });
   }
 
-  // --- GRID & HOME ENERGY RECOMMENDATIONS ---
+  // --- GRID & ENERGY RULES ---
   if (profile.electricityKwh > 0) {
-    // Coal heavy grid specific action
     if (profile.gridRegion === 'coal-heavy') {
       recommendations.push({
         id: 'energy-peak-shaving',
@@ -146,7 +152,6 @@ export function generateRecommendations(profile) {
   }
 
   if (profile.gasTherms > 0) {
-    // Cold water washing
     recommendations.push({
       id: 'gas-cold-wash',
       title: 'Wash your clothes in cold water',
@@ -156,7 +161,6 @@ export function generateRecommendations(profile) {
       completed: false
     });
 
-    // Water heater temperature setback
     recommendations.push({
       id: 'gas-water-heater',
       title: 'Set your water heater thermostat to 120°F',
@@ -167,7 +171,7 @@ export function generateRecommendations(profile) {
     });
   }
 
-  // --- DIETARY RECOMMENDATIONS ---
+  // --- DIETARY RULES ---
   if (profile.dietType === 'meat-heavy') {
     recommendations.push({
       id: 'diet-meatless-monday',
@@ -205,7 +209,6 @@ export function generateRecommendations(profile) {
       completed: false
     });
   } else {
-    // Vegetarian or Vegan
     recommendations.push({
       id: 'diet-food-waste',
       title: 'Track and eliminate edible food waste',
@@ -225,7 +228,7 @@ export function generateRecommendations(profile) {
     });
   }
 
-  // --- GENERAL WASTE RECOMMENDATIONS ---
+  // --- GENERAL WASTE RULES ---
   recommendations.push({
     id: 'waste-composting',
     title: 'Compost your food scraps',
