@@ -33,6 +33,7 @@ import { EMISSION_FACTORS } from './Calculator.js';
  * 
  * @param {UserProfile} profile - Cleaned user profile context.
  * @returns {MicroAction[]} List of recommendations.
+ * @throws {never} This function does not throw errors and handles invalid inputs gracefully.
  */
 export function generateRecommendations(profile) {
   if (!profile || typeof profile !== 'object' || Object.keys(profile).length === 0) {
@@ -40,7 +41,7 @@ export function generateRecommendations(profile) {
   }
 
   const recommendations = [];
-  const gridFactor = EMISSION_FACTORS.grid[profile.gridRegion] || EMISSION_FACTORS.grid['national-avg'];
+  const electricityGridFactor = EMISSION_FACTORS.grid[profile.gridRegion] || EMISSION_FACTORS.grid['national-avg'];
 
   // --- TRANSPORTATION RULES ---
   if (profile.transitMode === 'gas-car' && profile.transitMiles > 0) {
@@ -67,14 +68,14 @@ export function generateRecommendations(profile) {
     });
 
     // 3. EV Transition
-    const evFactor = EMISSION_FACTORS.transit.ev[profile.gridRegion] || EMISSION_FACTORS.transit.ev['national-avg'];
-    const evSavings = Math.round(profile.transitMiles * (0.40 - evFactor) * 10) / 10;
+    const electricVehicleFactor = EMISSION_FACTORS.transit.ev[profile.gridRegion] || EMISSION_FACTORS.transit.ev['national-avg'];
+    const electricVehicleSavings = Math.round(profile.transitMiles * (0.40 - electricVehicleFactor) * 10) / 10;
     recommendations.push({
       id: 'ev-transition',
       title: 'Switch to an Electric Vehicle for your next car',
       category: 'transport',
-      savings: Math.max(10.0, evSavings),
-      rationale: `Transitioning to an EV would save up to ${evSavings} kg CO2e weekly based on your driving habits and your region's electric grid.`,
+      savings: Math.max(10.0, electricVehicleSavings),
+      rationale: `Transitioning to an EV would save up to ${electricVehicleSavings} kg CO2e weekly based on your driving habits and your region's electric grid.`,
       completed: false
     });
   } else if (profile.transitMode === 'ev') {
@@ -87,12 +88,12 @@ export function generateRecommendations(profile) {
       completed: false
     });
   } else if (profile.transitMode === 'transit' && profile.transitMiles > 0) {
-    const activeSavings = Math.round(profile.transitMiles * 0.10 * 0.14 * 10) / 10;
+    const activeTransitSavings = Math.round(profile.transitMiles * 0.10 * 0.14 * 10) / 10;
     recommendations.push({
       id: 'active-transit-swap',
       title: 'Walk or bike short trips instead of transit',
       category: 'transport',
-      savings: Math.max(1.0, activeSavings),
+      savings: Math.max(1.0, activeTransitSavings),
       rationale: 'You are doing great by riding transit! Replacing short transit trips with walking or biking eliminates transit energy demand entirely.',
       completed: false
     });
@@ -130,12 +131,12 @@ export function generateRecommendations(profile) {
     }
 
     // Thermostat setback
-    const thermostatSavings = Math.round((profile.electricityKwh * 0.08) * gridFactor / 4 * 10) / 10;
+    const thermostatEnergySavings = Math.round((profile.electricityKwh * 0.08) * electricityGridFactor / 4 * 10) / 10;
     recommendations.push({
       id: 'energy-thermostat',
       title: 'Adjust your thermostat by 2°F',
       category: 'energy',
-      savings: Math.max(2.0, thermostatSavings),
+      savings: Math.max(2.0, thermostatEnergySavings),
       rationale: 'Lowering the thermostat 2°F in winter (or raising in summer) reduces your heating and cooling emissions by approximately 8%.',
       completed: false
     });
@@ -196,7 +197,7 @@ export function generateRecommendations(profile) {
       title: 'Swap beef for poultry or fish twice a week',
       category: 'diet',
       savings: 3.0,
-      rationale: 'Beef and lamb require vast land and emit high levels of methane. Shifting to chicken, pork, or fish cuts dietary emissions significantly.',
+      rationale: 'Beef and lamb require vast land and emit high levels of methane. Shifting to chicken, poultry, or fish cuts dietary emissions significantly.',
       completed: false
     });
 

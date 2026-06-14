@@ -103,5 +103,27 @@ export function runCalculatorTests() {
   assert.strictEqual(nullProfileFootprint.total, 0.5, 'Null profile should fall back to waste-only default baseline (0.5)');
   assert.strictEqual(nullProfileFootprint.breakdown.waste, 0.5, 'Waste breakdown baseline must equal 0.5');
 
+  // Exact mandate: Add exactly 3 more assertions checking for null, undefined, or missing keys
+  // 1. Assertion for undefined parameter
+  assert.strictEqual(calculateTransitEmissions('gas-car', undefined), 0, 'Undefined miles parameter should yield 0 emissions');
+
+  // 2. Assertion for missing keys in the data payload
+  const incompleteProfile = { name: 'Incomplete User' };
+  const incompleteFootprint = calculateFootprint(incompleteProfile);
+  assert.strictEqual(incompleteFootprint.breakdown.transit, 0, 'Missing transitMode/transitMiles should yield 0 transit emissions');
+
+  // 3. Assertion for explicit null keys in the data payload
+  const nullKeysProfile = {
+    name: 'Null Keys User',
+    gridRegion: null,
+    transitMode: null,
+    transitMiles: null,
+    dietType: null,
+    electricityKwh: null,
+    gasTherms: null
+  };
+  const nullKeysFootprint = calculateFootprint(nullKeysProfile);
+  assert.strictEqual(nullKeysFootprint.total, 3.0, 'Profile with null keys should fall back to average diet and baseline waste (3.0)');
+
   console.log('✅ Calculator Tests Passed Successfully!');
 }

@@ -76,26 +76,27 @@ export const EMISSION_FACTORS = {
 /**
  * Calculates transportation annual emissions.
  * 
- * @param {string} mode - Transit mode ('gas-car', 'ev', 'transit', 'active').
+ * @param {string} transitMode - Transit mode ('gas-car', 'ev', 'transit', 'active').
  * @param {number} weeklyMiles - Weekly travel distance. Must be positive.
  * @param {string} [gridRegion='national-avg'] - Grid region ('coal-heavy', 'national-avg', 'hydro-clean').
  * @returns {number} Metric Tons of CO2e per year.
+ * @throws {never} This function does not throw errors and handles invalid inputs gracefully.
  */
-export function calculateTransitEmissions(mode, weeklyMiles, gridRegion = 'national-avg') {
+export function calculateTransitEmissions(transitMode, weeklyMiles, gridRegion = 'national-avg') {
   const miles = parseFloat(weeklyMiles);
   if (isNaN(miles) || miles <= 0) return 0;
 
-  let factor = 0;
-  if (mode === 'ev') {
+  let emissionFactor = 0;
+  if (transitMode === 'ev') {
     const region = gridRegion || 'national-avg';
-    factor = EMISSION_FACTORS.transit.ev[region] || EMISSION_FACTORS.transit.ev['national-avg'];
+    emissionFactor = EMISSION_FACTORS.transit.ev[region] || EMISSION_FACTORS.transit.ev['national-avg'];
   } else {
-    factor = EMISSION_FACTORS.transit[mode] || 0;
+    emissionFactor = EMISSION_FACTORS.transit[transitMode] || 0;
   }
 
   const annualMiles = miles * 52;
-  const kgCo2 = annualMiles * factor;
-  return Math.round((kgCo2 / 1000) * 100) / 100; // Convert to Metric Tons and round
+  const kilogramsCo2Equivalent = annualMiles * emissionFactor;
+  return Math.round((kilogramsCo2Equivalent / 1000) * 100) / 100; // Convert to Metric Tons and round
 }
 
 /**
@@ -104,15 +105,16 @@ export function calculateTransitEmissions(mode, weeklyMiles, gridRegion = 'natio
  * @param {number} monthlyKwh - Monthly electricity usage. Must be positive.
  * @param {string} [gridRegion='national-avg'] - Grid region.
  * @returns {number} Metric Tons of CO2e per year.
+ * @throws {never} This function does not throw errors and handles invalid inputs gracefully.
  */
 export function calculateElectricityEmissions(monthlyKwh, gridRegion = 'national-avg') {
-  const kwh = parseFloat(monthlyKwh);
-  if (isNaN(kwh) || kwh <= 0) return 0;
+  const kilowattHours = parseFloat(monthlyKwh);
+  if (isNaN(kilowattHours) || kilowattHours <= 0) return 0;
   
-  const factor = EMISSION_FACTORS.grid[gridRegion] || EMISSION_FACTORS.grid['national-avg'];
-  const annualKwh = kwh * 12;
-  const kgCo2 = annualKwh * factor;
-  return Math.round((kgCo2 / 1000) * 100) / 100;
+  const emissionFactor = EMISSION_FACTORS.grid[gridRegion] || EMISSION_FACTORS.grid['national-avg'];
+  const annualKilowattHours = kilowattHours * 12;
+  const kilogramsCo2Equivalent = annualKilowattHours * emissionFactor;
+  return Math.round((kilogramsCo2Equivalent / 1000) * 100) / 100;
 }
 
 /**
@@ -120,14 +122,15 @@ export function calculateElectricityEmissions(monthlyKwh, gridRegion = 'national
  * 
  * @param {number} monthlyTherms - Monthly natural gas usage in therms. Must be positive.
  * @returns {number} Metric Tons of CO2e per year.
+ * @throws {never} This function does not throw errors and handles invalid inputs gracefully.
  */
 export function calculateGasEmissions(monthlyTherms) {
   const therms = parseFloat(monthlyTherms);
   if (isNaN(therms) || therms <= 0) return 0;
 
   const annualTherms = therms * 12;
-  const kgCo2 = annualTherms * EMISSION_FACTORS.gas;
-  return Math.round((kgCo2 / 1000) * 100) / 100;
+  const kilogramsCo2Equivalent = annualTherms * EMISSION_FACTORS.gas;
+  return Math.round((kilogramsCo2Equivalent / 1000) * 100) / 100;
 }
 
 /**
@@ -135,6 +138,7 @@ export function calculateGasEmissions(monthlyTherms) {
  * 
  * @param {string} dietType - Diet preference ('meat-heavy', 'average', 'vegetarian', 'vegan').
  * @returns {number} Metric Tons of CO2e per year.
+ * @throws {never} This function does not throw errors and handles invalid inputs gracefully.
  */
 export function calculateDietEmissions(dietType) {
   return EMISSION_FACTORS.diet[dietType] || EMISSION_FACTORS.diet['average'];
@@ -146,6 +150,7 @@ export function calculateDietEmissions(dietType) {
  * 
  * @param {Object} profile - User profile state.
  * @returns {Object} Calculated emission totals (MT CO2e/year) and individual components.
+ * @throws {never} This function does not throw errors and handles invalid inputs gracefully.
  */
 export function calculateFootprint(profile) {
   if (!profile || typeof profile !== 'object') {
@@ -155,24 +160,24 @@ export function calculateFootprint(profile) {
     };
   }
 
-  const transit = calculateTransitEmissions(profile.transitMode, profile.transitMiles, profile.gridRegion);
-  const electricity = calculateElectricityEmissions(profile.electricityKwh, profile.gridRegion);
-  const gas = calculateGasEmissions(profile.gasTherms);
-  const energy = Math.round((electricity + gas) * 100) / 100;
-  const diet = calculateDietEmissions(profile.dietType);
-  const waste = EMISSION_FACTORS.waste;
+  const transitEmissions = calculateTransitEmissions(profile.transitMode, profile.transitMiles, profile.gridRegion);
+  const electricityEmissions = calculateElectricityEmissions(profile.electricityKwh, profile.gridRegion);
+  const gasEmissions = calculateGasEmissions(profile.gasTherms);
+  const energyEmissions = Math.round((electricityEmissions + gasEmissions) * 100) / 100;
+  const dietEmissions = calculateDietEmissions(profile.dietType);
+  const wasteEmissions = EMISSION_FACTORS.waste;
 
-  const total = Math.round((transit + energy + diet + waste) * 100) / 100;
+  const totalEmissions = Math.round((transitEmissions + energyEmissions + dietEmissions + wasteEmissions) * 100) / 100;
 
   return {
-    total,
+    total: totalEmissions,
     breakdown: {
-      transit,
-      electricity,
-      gas,
-      energy,
-      diet,
-      waste
+      transit: transitEmissions,
+      electricity: electricityEmissions,
+      gas: gasEmissions,
+      energy: energyEmissions,
+      diet: dietEmissions,
+      waste: wasteEmissions
     }
   };
 }

@@ -33,7 +33,17 @@ async function runAllTests() {
     console.error('==================================================');
     console.error('❌ FAILURE: EcoPulse test suite encountered errors!');
     console.error('==================================================');
-    console.error(error);
+    if (error.name === 'AssertionError') {
+      console.error(`Assertion Error: ${error.message}`);
+      console.error(`  Expected: ${error.expected}`);
+      console.error(`  Actual:   ${error.actual}`);
+      console.error(`  Operator: ${error.operator}`);
+      if (error.stack) {
+        console.error(`\nStack Trace:\n${error.stack}`);
+      }
+    } else {
+      console.error(error);
+    }
     process.exit(1);
   }
 }

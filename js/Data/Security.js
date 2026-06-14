@@ -8,20 +8,21 @@
  * Escapes characters that could be interpreted as HTML control tokens.
  * Combats Cross-Site Scripting (XSS) injection vectors.
  * 
- * @param {string} str - Raw string input.
+ * @param {string} inputString - Raw string input.
  * @returns {string} Sanitized text string.
+ * @throws {never} This function does not throw errors and handles invalid inputs gracefully.
  */
-export function sanitizeString(str) {
-  if (typeof str !== 'string') return '';
-  return str.replace(/[&<>"']/g, (m) => {
-    const map = {
+export function sanitizeString(inputString) {
+  if (typeof inputString !== 'string') return '';
+  return inputString.replace(/[&<>"']/g, (matchedChar) => {
+    const characterMap = {
       '&': '&amp;',
       '<': '&lt;',
       '>': '&gt;',
       '"': '&quot;',
       "'": '&#039;'
     };
-    return map[m] || m;
+    return characterMap[matchedChar] || matchedChar;
   });
 }
 
@@ -31,13 +32,14 @@ export function sanitizeString(str) {
  * 
  * @param {string} name - Unsanitized name string.
  * @returns {boolean} True if the name is valid, false otherwise.
+ * @throws {never} This function does not throw errors and handles invalid inputs gracefully.
  */
 export function validateName(name) {
   if (typeof name !== 'string') return false;
-  const trimmed = name.trim();
+  const trimmedName = name.trim();
   // Match standard alphabetic, whitespace, hyphens, apostrophes (1-50 length)
-  const regex = /^[a-zA-Z\s\-']{1,50}$/;
-  return regex.test(trimmed);
+  const validationRegex = /^[a-zA-Z\s\-']{1,50}$/;
+  return validationRegex.test(trimmedName);
 }
 
 /**
@@ -45,19 +47,20 @@ export function validateName(name) {
  * Automatically handles conversion, checks boundary conditions, and returns fallback on failure.
  * 
  * @param {*} value - The input to check.
- * @param {number} min - Minimum allowable value.
- * @param {number} max - Maximum allowable value.
- * @param {number} fallback - The fallback value if bounds check fails.
+ * @param {number} minimumValue - Minimum allowable value.
+ * @param {number} maximumValue - Maximum allowable value.
+ * @param {number} fallbackValue - The fallback value if bounds check fails.
  * @returns {number} The validated value or the fallback.
+ * @throws {never} This function does not throw errors and handles invalid inputs gracefully.
  */
-export function validateNumericRange(value, min, max, fallback) {
-  const num = parseFloat(value);
-  if (isNaN(num) || !isFinite(num)) {
-    return fallback;
+export function validateNumericRange(value, minimumValue, maximumValue, fallbackValue) {
+  const parsedNumber = parseFloat(value);
+  if (isNaN(parsedNumber) || !isFinite(parsedNumber)) {
+    return fallbackValue;
   }
-  if (num < min) return min;
-  if (num > max) return max;
-  return num;
+  if (parsedNumber < minimumValue) return minimumValue;
+  if (parsedNumber > maximumValue) return maximumValue;
+  return parsedNumber;
 }
 
 /**
@@ -66,6 +69,7 @@ export function validateNumericRange(value, min, max, fallback) {
  * 
  * @param {Object} rawProfile - Unchecked profile fields.
  * @returns {Object} Strictly typed, sanitized profile object.
+ * @throws {never} This function does not throw errors and handles invalid inputs gracefully.
  */
 export function cleanProfileInput(rawProfile) {
   if (!rawProfile || typeof rawProfile !== 'object') {
@@ -85,36 +89,36 @@ export function cleanProfileInput(rawProfile) {
     : 'Eco Citizen';
 
   const validRegions = ['coal-heavy', 'national-avg', 'hydro-clean'];
-  const cleanGrid = validRegions.includes(rawProfile.gridRegion) 
+  const cleanGridRegion = validRegions.includes(rawProfile.gridRegion) 
     ? rawProfile.gridRegion 
     : 'national-avg';
 
-  const validTransit = ['gas-car', 'ev', 'transit', 'active'];
-  const cleanTransit = validTransit.includes(rawProfile.transitMode) 
+  const validTransitModes = ['gas-car', 'ev', 'transit', 'active'];
+  const cleanTransitMode = validTransitModes.includes(rawProfile.transitMode) 
     ? rawProfile.transitMode 
     : 'gas-car';
 
-  const validDiets = ['meat-heavy', 'average', 'vegetarian', 'vegan'];
-  const cleanDiet = validDiets.includes(rawProfile.dietType) 
+  const validDietTypes = ['meat-heavy', 'average', 'vegetarian', 'vegan'];
+  const cleanDietType = validDietTypes.includes(rawProfile.dietType) 
     ? rawProfile.dietType 
     : 'average';
 
   // Enforce realistic bounds (0 - 2000 weekly miles, fallback 0)
-  const cleanMiles = validateNumericRange(rawProfile.transitMiles, 0, 2000, 0);
+  const cleanTransitMiles = validateNumericRange(rawProfile.transitMiles, 0, 2000, 0);
 
   // Enforce electricity limits (0 - 10000 kWh/month, fallback 0)
-  const cleanKwh = validateNumericRange(rawProfile.electricityKwh, 0, 10000, 0);
+  const cleanElectricityKwh = validateNumericRange(rawProfile.electricityKwh, 0, 10000, 0);
 
   // Enforce gas limits (0 - 1000 Therms/month, fallback 0)
-  const cleanTherms = validateNumericRange(rawProfile.gasTherms, 0, 1000, 0);
+  const cleanGasTherms = validateNumericRange(rawProfile.gasTherms, 0, 1000, 0);
 
   return {
     name: cleanName,
-    gridRegion: cleanGrid,
-    transitMode: cleanTransit,
-    transitMiles: cleanMiles,
-    dietType: cleanDiet,
-    electricityKwh: cleanKwh,
-    gasTherms: cleanTherms
+    gridRegion: cleanGridRegion,
+    transitMode: cleanTransitMode,
+    transitMiles: cleanTransitMiles,
+    dietType: cleanDietType,
+    electricityKwh: cleanElectricityKwh,
+    gasTherms: cleanGasTherms
   };
 }

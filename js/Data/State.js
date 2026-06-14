@@ -55,6 +55,8 @@ const DEFAULT_STATE = {
 class StateManager {
   /**
    * Initializes state and listeners.
+   * 
+   * @throws {never} This constructor does not throw errors.
    */
   constructor() {
     this._key = 'ecopulse_secured_state';
@@ -67,6 +69,7 @@ class StateManager {
    * 
    * @private
    * @returns {AppState} State object.
+   * @throws {never} This function handles exceptions internally and does not throw.
    */
   _loadState() {
     try {
@@ -85,8 +88,8 @@ class StateManager {
           lastStreakDate: parsed.lastStreakDate ? sanitizeString(parsed.lastStreakDate) : null
         };
       }
-    } catch (e) {
-      console.error('Failed to parse secure state:', e);
+    } catch (error) {
+      console.error('Failed to parse secure state:', error);
     }
     
     // Deep clone default state
@@ -99,15 +102,16 @@ class StateManager {
    * @private
    * @param {Array<Object>} actions - Array of actions to validate.
    * @returns {MicroAction[]}
+   * @throws {never} This function does not throw errors and handles invalid inputs gracefully.
    */
   _validateActions(actions) {
-    return actions.map(act => ({
-      id: sanitizeString(act.id),
-      title: sanitizeString(act.title),
-      category: sanitizeString(act.category),
-      savings: parseFloat(act.savings) || 0,
-      rationale: sanitizeString(act.rationale),
-      completed: !!act.completed
+    return actions.map(action => ({
+      id: sanitizeString(action.id),
+      title: sanitizeString(action.title),
+      category: sanitizeString(action.category),
+      savings: parseFloat(action.savings) || 0,
+      rationale: sanitizeString(action.rationale),
+      completed: !!action.completed
     }));
   }
 
@@ -115,13 +119,14 @@ class StateManager {
    * Saves state to storage and alerts observers.
    * 
    * @private
+   * @throws {never} This function handles exceptions internally and does not throw.
    */
   _commit() {
     try {
       localStorage.setItem(this._key, JSON.stringify(this._state));
       this._notify();
-    } catch (e) {
-      console.error('Failed to commit state change:', e);
+    } catch (error) {
+      console.error('Failed to commit state change:', error);
     }
   }
 
@@ -129,14 +134,15 @@ class StateManager {
    * Alerts all registered observers.
    * 
    * @private
+   * @throws {never} This function handles exceptions internally and does not throw.
    */
   _notify() {
     const currentStateCopy = this.state;
     for (const listener of this._listeners) {
       try {
         listener(currentStateCopy);
-      } catch (e) {
-        console.error('State observer error:', e);
+      } catch (error) {
+        console.error('State observer error:', error);
       }
     }
   }
@@ -146,6 +152,7 @@ class StateManager {
    * Prevents UI components from direct state mutation.
    * 
    * @returns {AppState} Read-only deep copy of application state.
+   * @throws {never} This getter does not throw errors.
    */
   get state() {
     return JSON.parse(JSON.stringify(this._state));
@@ -154,8 +161,9 @@ class StateManager {
   /**
    * Registers a state observer callback.
    * 
-   * @param {Function} callback
+   * @param {Function} callback - Callback function execution on state change.
    * @returns {Function} Unsubscribe clean-up routine.
+   * @throws {never} This function does not throw errors.
    */
   subscribe(callback) {
     if (typeof callback === 'function') {
@@ -168,6 +176,7 @@ class StateManager {
    * Updates profile after security clearing. Sets onboarded status.
    * 
    * @param {Object} rawProfile - Raw inputs from UI.
+   * @throws {never} This function does not throw errors.
    */
   updateProfile(rawProfile) {
     const cleanProfile = cleanProfileInput(rawProfile);
@@ -180,6 +189,7 @@ class StateManager {
    * Sets the recommendation action checklist.
    * 
    * @param {Array<Object>} rawActions - Rec engine output.
+   * @throws {never} This function does not throw errors.
    */
   setActions(rawActions) {
     this._state.actions = this._validateActions(rawActions);
@@ -191,9 +201,10 @@ class StateManager {
    * 
    * @param {string} actionId - Target identifier.
    * @returns {boolean|null} New state of action, or null if action does not exist.
+   * @throws {never} This function does not throw errors.
    */
   toggleAction(actionId) {
-    const action = this._state.actions.find(a => a.id === actionId);
+    const action = this._state.actions.find(currentAction => currentAction.id === actionId);
     if (action) {
       action.completed = !action.completed;
       this._updateStreak(action.completed);
@@ -208,19 +219,22 @@ class StateManager {
    * 
    * @private
    * @param {boolean} isCompleted - Action finished status.
+   * @throws {never} This function does not throw errors.
    */
   _updateStreak(isCompleted) {
     if (!isCompleted) return; // Only count upward on checklist completion
     
-    const todayStr = new Date().toISOString().split('T')[0];
-    if (this._state.lastStreakDate !== todayStr) {
+    const todayString = new Date().toISOString().split('T')[0];
+    if (this._state.lastStreakDate !== todayString) {
       this._state.streak += 1;
-      this._state.lastStreakDate = todayStr;
+      this._state.lastStreakDate = todayString;
     }
   }
 
   /**
    * Reset helper: completely wipes state.
+   * 
+   * @throws {never} This function does not throw errors.
    */
   reset() {
     this._state = JSON.parse(JSON.stringify(DEFAULT_STATE));

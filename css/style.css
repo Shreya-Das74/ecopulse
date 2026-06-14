@@ -17,14 +17,14 @@
   
   --text-primary: #f0f7f4;
   --text-secondary: #9dbbb0;
-  --text-muted: #6b8a80;
+  --text-muted: #7da297;
   
   --accent-primary: #10b981;      /* Emerald Green */
   --accent-secondary: #06b6d4;    /* Cyan */
   --accent-light: rgba(16, 185, 129, 0.15);
   --accent-glow: rgba(16, 185, 129, 0.4);
   
-  --error-color: #f43f5e;
+  --error-color: #ff5272;
   --success-color: #10b981;
   --warning-color: #f59e0b;
   
